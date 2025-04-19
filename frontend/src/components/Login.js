@@ -35,6 +35,7 @@ function Login({ setUser }) {
         email: formData.email,
         token: data.access_token
       };
+      localStorage.setItem('token', data.access_token);
       setUser(user);
       navigate('/');
     } catch (err) {
@@ -52,7 +53,7 @@ function Login({ setUser }) {
           setError('Login failed');
         }
       } else {
-        setError(err.message || 'An error occurred during login');
+        setError('Login failed. Please try again.');
       }
     }
   };
