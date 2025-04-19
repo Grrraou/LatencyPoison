@@ -8,4 +8,5 @@ export const API_ENDPOINTS = {
   },
   COLLECTIONS: `${API_BASE_URL}/api/collections/`,
   ENDPOINTS: `${API_BASE_URL}/api/endpoints/`,
+  PROXY: `${API_BASE_URL}/proxy`,
 }; 
