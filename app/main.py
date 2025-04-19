@@ -119,8 +119,10 @@ def validate_url(url: str) -> bool:
 @app.get("/proxy")
 async def proxy(
     url: str = Query(..., description="The destination URL to forward to"),
-    delay: Optional[int] = Query(0, description="Artificial latency in milliseconds"),
-    fail_rate: Optional[float] = Query(0.0, description="Probability of returning a 500 error (0.0 to 1.0)")
+    min_latency: Optional[int] = Query(0, description="Minimum latency in milliseconds"),
+    max_latency: Optional[int] = Query(0, description="Maximum latency in milliseconds"),
+    fail_rate: Optional[float] = Query(0.0, description="Probability of returning a 500 error (0.0 to 1.0)"),
+    sandbox: Optional[bool] = Query(False, description="Enable sandbox mode to return mock data")
 ):
     # Validate URL
     if not validate_url(url):
@@ -130,13 +132,38 @@ async def proxy(
     if not 0 <= fail_rate <= 1:
         raise HTTPException(status_code=400, detail="fail_rate must be between 0.0 and 1.0")
     
-    # Apply artificial delay
-    if delay > 0:
-        await asyncio.sleep(delay / 1000)
+    # Validate latency range
+    if min_latency < 0 or max_latency < 0:
+        raise HTTPException(status_code=400, detail="Latency values must be positive")
+    if min_latency > max_latency:
+        raise HTTPException(status_code=400, detail="min_latency must be less than or equal to max_latency")
+    
+    # Apply random latency within range
+    if max_latency > 0:
+        latency = random.randint(min_latency, max_latency)
+        await asyncio.sleep(latency / 1000)
     
     # Check if we should fail
     if random.random() < fail_rate:
         raise HTTPException(status_code=500, detail="Random failure injected")
+    
+    # In sandbox mode, return mock data
+    if sandbox:
+        return {
+            "status_code": 200,
+            "headers": {"Content-Type": "application/json"},
+            "content": {
+                "message": "Sandbox mode enabled",
+                "url": url,
+                "latency": {
+                    "min": min_latency,
+                    "max": max_latency,
+                    "actual": latency if max_latency > 0 else 0
+                },
+                "fail_rate": fail_rate,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
     
     # Forward the request
     async with httpx.AsyncClient() as client:

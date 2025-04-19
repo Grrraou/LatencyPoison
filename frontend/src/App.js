@@ -10,7 +10,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import Dashboard from './components/Dashboard';
-import PrivateRoute from './components/PrivateRoute';
+import QuickSandbox from './components/QuickSandbox';
 import { UserProvider } from './contexts/UserContext';
 
 // Create a theme
@@ -56,6 +56,7 @@ function App() {
               <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
               <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/" />} />
               <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
+              <Route path="/sandbox" element={user ? <QuickSandbox /> : <Navigate to="/login" />} />
             </Routes>
           </Box>
         </Box>

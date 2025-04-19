@@ -1,0 +1,279 @@
+import React, { useState } from 'react';
+import {
+  Box,
+  Paper,
+  TextField,
+  Slider,
+  Typography,
+  Button,
+  CircularProgress,
+  Alert,
+  Switch,
+  FormControlLabel,
+  Grid,
+  Tooltip,
+  Divider,
+  Collapse,
+} from '@mui/material';
+import { API_ENDPOINTS } from '../config';
+
+function QuickSandbox() {
+  const [formData, setFormData] = useState({
+    url: 'https://api.github.com',
+    failRate: 0,
+    minLatency: 0,
+    maxLatency: 1000,
+    sandbox: false,
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSliderChange = (event, newValue, name) => {
+    setFormData({
+      ...formData,
+      [name]: newValue,
+    });
+  };
+
+  const handleSwitchChange = (event) => {
+    setFormData({
+      ...formData,
+      sandbox: event.target.checked,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const startTime = performance.now();
+      const failRateDecimal = formData.failRate / 100;
+      const response = await fetch(
+        `${API_ENDPOINTS.PROXY}?url=${encodeURIComponent(formData.url)}&fail_rate=${failRateDecimal}&min_latency=${formData.minLatency}&max_latency=${formData.maxLatency}&sandbox=${formData.sandbox}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
+      );
+      const endTime = performance.now();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      setResult({
+        status: response.status,
+        time: endTime - startTime,
+        data: data,
+      });
+    } catch (err) {
+      setError(err.message);
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Quick API Test
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Test your API endpoints with configurable latency and failure rates
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <Tooltip title="The URL of the API endpoint you want to test">
+            <TextField
+              fullWidth
+              label="URL"
+              name="url"
+              value={formData.url}
+              onChange={handleChange}
+              margin="normal"
+              required
+              placeholder="https://api.github.com"
+              helperText="Try with https://api.github.com"
+            />
+          </Tooltip>
+          
+          <Divider sx={{ my: 3 }} />
+          
+          <Typography variant="subtitle1" gutterBottom>
+            Latency Settings
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Set a range for random latency injection (in milliseconds)
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Tooltip title="Minimum delay to inject (in milliseconds)">
+                <Box>
+                  <Typography gutterBottom>
+                    Min Latency: {formData.minLatency}ms
+                  </Typography>
+                  <Slider
+                    value={formData.minLatency}
+                    onChange={(e, v) => handleSliderChange(e, v, 'minLatency')}
+                    step={100}
+                    marks
+                    min={0}
+                    max={5000}
+                    valueLabelDisplay="auto"
+                  />
+                </Box>
+              </Tooltip>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Tooltip title="Maximum delay to inject (in milliseconds)">
+                <Box>
+                  <Typography gutterBottom>
+                    Max Latency: {formData.maxLatency}ms
+                  </Typography>
+                  <Slider
+                    value={formData.maxLatency}
+                    onChange={(e, v) => handleSliderChange(e, v, 'maxLatency')}
+                    step={100}
+                    marks
+                    min={0}
+                    max={5000}
+                    valueLabelDisplay="auto"
+                  />
+                </Box>
+              </Tooltip>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              Failure Rate
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Simulate random API failures by setting a percentage chance (0-100%) that the request will fail with a 500 error.
+              This helps test your application's error handling and resilience.
+            </Typography>
+            <Tooltip title="Probability of the request failing (0-100%)">
+              <Box>
+                <Typography gutterBottom>
+                  Failure Rate: {formData.failRate}%
+                </Typography>
+                <Slider
+                  value={formData.failRate}
+                  onChange={(e, v) => handleSliderChange(e, v, 'failRate')}
+                  step={1}
+                  marks
+                  min={0}
+                  max={100}
+                  valueLabelDisplay="auto"
+                />
+              </Box>
+            </Tooltip>
+          </Box>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              Sandbox Mode
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              When enabled, sandbox mode simulates API responses without making actual requests to the target URL.
+              This is useful for testing latency and failure scenarios without affecting real APIs or requiring internet access.
+            </Typography>
+            <Tooltip title="Enable sandbox mode to test without making real API calls">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.sandbox}
+                    onChange={handleSwitchChange}
+                    name="sandbox"
+                    color="primary"
+                  />
+                }
+                label="Sandbox Mode"
+                sx={{ mt: 2 }}
+              />
+            </Tooltip>
+          </Box>
+
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2 }}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Test API'}
+          </Button>
+        </form>
+      </Paper>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {result && (
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Results
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Status Code: {result.status}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Response Time: {result.time.toFixed(2)}ms
+            </Typography>
+          </Box>
+          <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
+            Response Data:
+          </Typography>
+          <Box
+            component="pre"
+            sx={{
+              p: 2,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              overflow: 'auto',
+              maxHeight: '400px',
+              '& code': {
+                color: 'text.primary',
+                fontFamily: 'monospace',
+                fontSize: '0.875rem',
+              }
+            }}
+          >
+            <code>
+              {JSON.stringify(result.data, null, 2)}
+            </code>
+          </Box>
+        </Paper>
+      )}
+    </Box>
+  );
+}
+
+export default QuickSandbox; 
