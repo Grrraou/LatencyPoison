@@ -1,169 +1,135 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Container,
-  Paper,
-  Typography,
   Box,
-  Button,
-  TextField,
+  Typography,
   List,
-  ListItem,
-  ListItemText,
   IconButton,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
   Snackbar,
   Alert,
+  Card,
+  CardContent,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { API_ENDPOINTS } from '../config';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { fetchCollections, createCollection, deleteCollection } from '../services/api';
 
 function Endpoints() {
   const [collections, setCollections] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    fetchCollections();
+    loadCollections();
   }, []);
 
-  const fetchCollections = async () => {
+  const loadCollections = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        return;
-      }
-
-      const response = await fetch(API_ENDPOINTS.COLLECTIONS, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to fetch collections');
-      }
-
-      const data = await response.json();
+      const data = await fetchCollections();
       setCollections(data);
     } catch (error) {
-      console.error('Error fetching collections:', error);
-      setError(error.message);
+      setSnackbar({
+        open: true,
+        message: 'Failed to load collections',
+        severity: 'error',
+      });
     }
   };
 
   const handleCreateCollection = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        return;
-      }
-
-      if (!newCollectionName.trim()) {
-        setError('Collection name cannot be empty');
-        return;
-      }
-
-      const response = await fetch(API_ENDPOINTS.COLLECTIONS, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newCollectionName }),
+    if (!newCollectionName.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Collection name cannot be empty',
+        severity: 'error',
       });
+      return;
+    }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create collection');
-      }
-
-      const newCollection = await response.json();
-      setCollections([...collections, newCollection]);
-      setOpenDialog(false);
+    try {
+      await createCollection(newCollectionName);
       setNewCollectionName('');
-      setSuccess('Collection created successfully');
+      setOpenDialog(false);
+      loadCollections();
+      setSnackbar({
+        open: true,
+        message: 'Collection created successfully',
+        severity: 'success',
+      });
     } catch (error) {
-      console.error('Error creating collection:', error);
-      setError(error.message);
+      setSnackbar({
+        open: true,
+        message: 'Failed to create collection',
+        severity: 'error',
+      });
     }
   };
 
   const handleDeleteCollection = async (collectionId) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        return;
-      }
-
-      const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}/${collectionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      await deleteCollection(collectionId);
+      loadCollections();
+      setSnackbar({
+        open: true,
+        message: 'Collection deleted successfully',
+        severity: 'success',
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete collection');
-      }
-
-      setCollections(collections.filter(c => c.id !== collectionId));
-      setSuccess('Collection deleted successfully');
     } catch (error) {
-      console.error('Error deleting collection:', error);
-      setError(error.message);
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete collection',
+        severity: 'error',
+      });
     }
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" component="h1">
-              Endpoints
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setOpenDialog(true)}
-            >
-              Create Collection
-            </Button>
-          </Box>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">Collections</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenDialog(true)}
+        >
+          New Collection
+        </Button>
+      </Box>
 
-          <List>
-            {collections.map((collection) => (
-              <ListItem
-                key={collection.id}
-                secondaryAction={
+      <List>
+        {collections.map((collection) => (
+          <Card key={collection.id} sx={{ mb: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" component={Link} to={`/collections/${collection.id}`}>
+                  {collection.name}
+                </Typography>
+                <Box>
                   <IconButton
-                    edge="end"
-                    aria-label="delete"
+                    component={Link}
+                    to={`/collections/${collection.id}`}
+                    color="primary"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
                     onClick={() => handleDeleteCollection(collection.id)}
+                    color="error"
                   >
                     <DeleteIcon />
                   </IconButton>
-                }
-              >
-                <ListItemText
-                  primary={collection.name}
-                  secondary={`ID: ${collection.id}`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-      </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        ))}
+      </List>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>Create New Collection</DialogTitle>
@@ -186,25 +152,19 @@ function Endpoints() {
       </Dialog>
 
       <Snackbar
-        open={!!error}
+        open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setError(null)}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert onClose={() => setError(null)} severity="error">
-          {error}
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
         </Alert>
       </Snackbar>
-
-      <Snackbar
-        open={!!success}
-        autoHideDuration={6000}
-        onClose={() => setSuccess(null)}
-      >
-        <Alert onClose={() => setSuccess(null)} severity="success">
-          {success}
-        </Alert>
-      </Snackbar>
-    </Container>
+    </Box>
   );
 }
 

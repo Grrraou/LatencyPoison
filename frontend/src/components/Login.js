@@ -10,7 +10,7 @@ import {
   Link,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { API_ENDPOINTS } from '../config';
+import { login } from '../services/api';
 
 function Login({ setUser }) {
   const [formData, setFormData] = useState({
@@ -30,43 +30,30 @@ function Login({ setUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formBody = new URLSearchParams();
-      formBody.append('email', formData.email);
-      formBody.append('password', formData.password);
-
-      const response = await fetch(API_ENDPOINTS.LOGIN, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formBody,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.access_token);
-        const user = {
-          email: formData.email,
-          token: data.access_token
-        };
-        setUser(user);
-        navigate('/');
-      } else {
-        // Handle different types of error responses
-        if (typeof data.detail === 'string') {
-          setError(data.detail);
-        } else if (Array.isArray(data.detail)) {
-          setError(data.detail[0]?.msg || 'Login failed');
-        } else if (data.detail && typeof data.detail === 'object') {
-          setError(Object.values(data.detail)[0] || 'Login failed');
+      const data = await login(formData.email, formData.password);
+      const user = {
+        email: formData.email,
+        token: data.access_token
+      };
+      setUser(user);
+      navigate('/');
+    } catch (err) {
+      console.error('Login error:', err);
+      // Handle different types of error responses
+      if (err.response?.data?.detail) {
+        const errorDetail = err.response.data.detail;
+        if (typeof errorDetail === 'string') {
+          setError(errorDetail);
+        } else if (Array.isArray(errorDetail)) {
+          setError(errorDetail[0]?.msg || 'Login failed');
+        } else if (typeof errorDetail === 'object') {
+          setError(Object.values(errorDetail)[0] || 'Login failed');
         } else {
           setError('Login failed');
         }
+      } else {
+        setError(err.message || 'An error occurred during login');
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An error occurred during login');
     }
   };
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth, proxy, collections
+from .routers import auth, proxy, collections, endpoints
 
 app = FastAPI(title="LatencyPoison", description="Network Chaos Proxy")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(proxy.router)
 app.include_router(collections.router)
+app.include_router(endpoints.router)
 
 @app.get("/")
 async def root():
@@ -27,6 +28,7 @@ async def root():
             "/proxy": "Forward requests with configurable latency and failure rate",
             "/api/auth": "Authentication endpoints",
             "/api/collections": "Collections endpoints",
+            "/api/endpoints": "Endpoints endpoints",
             "/docs": "API documentation"
         }
     } 

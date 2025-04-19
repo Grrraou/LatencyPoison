@@ -11,6 +11,7 @@ import Register from './components/Register';
 import Endpoints from './components/Endpoints';
 import Dashboard from './components/Dashboard';
 import QuickSandbox from './components/QuickSandbox';
+import CollectionEdit from './components/CollectionEdit';
 import { UserProvider } from './contexts/UserContext';
 
 // Create a theme
@@ -57,6 +58,7 @@ function App() {
               <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/" />} />
               <Route path="/endpoints" element={user ? <Endpoints /> : <Navigate to="/login" />} />
               <Route path="/sandbox" element={user ? <QuickSandbox /> : <Navigate to="/login" />} />
+              <Route path="/collections/:collectionId" element={<CollectionEdit />} />
             </Routes>
           </Box>
         </Box>
