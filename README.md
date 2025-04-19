@@ -1,71 +1,121 @@
 # Latency Poison
 
-A tool for measuring and analyzing network latency.
+A tool for testing API resilience by simulating latency and failures.
 
-## Development Setup
+## Features
 
-### Prerequisites
-- Docker
-- Docker Compose
-- Make
+- Configurable latency injection
+- Random failure simulation
+- Sandbox mode for testing without real API calls
+- Quick testing interface
+- Detailed response analysis
 
-### Quick Start
+## Quick Start
 
-1. Clone the repository
-2. Run the development environment:
+### Using Makefile
+
+The project includes a Makefile for common operations:
+
+```bash
+# Start the development environment
+make dev
+
+# Build the production environment
+make build
+
+# Run tests
+make test
+
+# Clean build artifacts
+make clean
+
+# Start the production server
+make start
+
+# Stop all services
+make stop
+```
+
+### Development Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/latency-poison.git
+cd latency-poison
+```
+
+2. Start the development environment:
 ```bash
 make dev
 ```
 
-This will start:
-- Frontend at http://localhost:3000
-- API at http://localhost:8000
+3. Access the application at `http://localhost:3000`
 
-### Demo Account
-For testing purposes, you can use the following demo account:
-```
-Email: demo@example.com
-Password: demo123
-```
+## API Usage
 
-### Available Commands
+### Quick Sandbox Testing
 
-- `make dev` - Start development environment
-- `make build` - Build production images
-- `make clean` - Clean up containers and volumes
-- `make test` - Run tests
-- `make help` - Show available commands
+The Quick Sandbox interface allows you to test APIs with configurable parameters:
 
-## Accessing the Application
+1. **URL**: The API endpoint to test
+   - Example: `https://api.github.com/users/octocat`
+   - Example: `https://jsonplaceholder.typicode.com/posts/1`
 
-- Frontend: http://localhost:3000
-- API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+2. **Latency Settings**:
+   - Min Latency: Minimum delay in milliseconds (0-5000ms)
+   - Max Latency: Maximum delay in milliseconds (0-5000ms)
 
-## Development
+3. **Failure Rate**:
+   - Percentage chance of request failure (0-100%)
+   - Simulates 500 errors for testing error handling
 
-The application is containerized using Docker Compose. The development environment includes:
+4. **Sandbox Mode**:
+   - When enabled, simulates responses without real API calls
+   - Useful for testing without internet access
 
-- Frontend: React application with hot reloading
-- Backend: FastAPI application with auto-reload
-- Database: SQLite (development)
+### Direct API Calls
 
-### Authentication
-The application includes a simple authentication system with:
-- User registration
-- User login
-- Protected routes
-- Demo account for testing
-
-## Production
-
-For production deployment, use the production Docker Compose file and build the images:
+You can also use the proxy API directly:
 
 ```bash
-make build
-docker-compose up -d
+# Basic request
+curl "http://localhost:8000/proxy?url=https://api.github.com/users/octocat"
+
+# With latency settings
+curl "http://localhost:8000/proxy?url=https://api.github.com/users/octocat&min_latency=1000&max_latency=3000"
+
+# With failure rate
+curl "http://localhost:8000/proxy?url=https://api.github.com/users/octocat&fail_rate=0.5"
+
+# With sandbox mode
+curl "http://localhost:8000/proxy?url=https://api.github.com/users/octocat&sandbox=true"
+
+# All parameters together
+curl "http://localhost:8000/proxy?url=https://api.github.com/users/octocat&min_latency=1000&max_latency=3000&fail_rate=0.5&sandbox=true"
 ```
+
+### API Parameters
+
+- `url` (required): The target API endpoint
+- `min_latency` (optional): Minimum delay in milliseconds (default: 0)
+- `max_latency` (optional): Maximum delay in milliseconds (default: 1000)
+- `fail_rate` (optional): Probability of failure (0-1, default: 0)
+- `sandbox` (optional): Enable sandbox mode (true/false, default: false)
+
+## Architecture
+
+- Frontend: React with Material-UI
+- Backend: FastAPI
+- Docker containers for development and production
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-MIT
+MIT License

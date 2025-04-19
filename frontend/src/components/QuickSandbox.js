@@ -13,7 +13,6 @@ import {
   Grid,
   Tooltip,
   Divider,
-  Collapse,
 } from '@mui/material';
 import { API_ENDPOINTS } from '../config';
 
@@ -37,10 +36,24 @@ function QuickSandbox() {
   };
 
   const handleSliderChange = (event, newValue, name) => {
-    setFormData({
-      ...formData,
-      [name]: newValue,
-    });
+    if (name === 'minLatency' && newValue > formData.maxLatency) {
+      setFormData({
+        ...formData,
+        minLatency: newValue,
+        maxLatency: newValue,
+      });
+    } else if (name === 'maxLatency' && newValue < formData.minLatency) {
+      setFormData({
+        ...formData,
+        minLatency: newValue,
+        maxLatency: newValue,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: newValue,
+      });
+    }
   };
 
   const handleSwitchChange = (event) => {
@@ -91,78 +104,88 @@ function QuickSandbox() {
   return (
     <Box sx={{ p: 3 }}>
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Quick API Test
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Test your API endpoints with configurable latency and failure rates
-        </Typography>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" gutterBottom>
+            Quick API Test
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Test your API endpoints with configurable latency and failure rates
+          </Typography>
+        </Box>
+
         <form onSubmit={handleSubmit}>
-          <Tooltip title="The URL of the API endpoint you want to test">
-            <TextField
-              fullWidth
-              label="URL"
-              name="url"
-              value={formData.url}
-              onChange={handleChange}
-              margin="normal"
-              required
-              placeholder="https://api.github.com"
-              helperText="Try with https://api.github.com"
-            />
-          </Tooltip>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Target URL
+            </Typography>
+            <Tooltip title="The URL of the API endpoint you want to test">
+              <TextField
+                fullWidth
+                label="URL"
+                name="url"
+                value={formData.url}
+                onChange={handleChange}
+                margin="normal"
+                required
+                placeholder="https://api.github.com"
+                helperText="Try with https://api.github.com"
+              />
+            </Tooltip>
+          </Box>
           
           <Divider sx={{ my: 3 }} />
           
-          <Typography variant="subtitle1" gutterBottom>
-            Latency Settings
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Set a range for random latency injection (in milliseconds)
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Tooltip title="Minimum delay to inject (in milliseconds)">
-                <Box>
-                  <Typography gutterBottom>
-                    Min Latency: {formData.minLatency}ms
-                  </Typography>
-                  <Slider
-                    value={formData.minLatency}
-                    onChange={(e, v) => handleSliderChange(e, v, 'minLatency')}
-                    step={100}
-                    marks
-                    min={0}
-                    max={5000}
-                    valueLabelDisplay="auto"
-                  />
-                </Box>
-              </Tooltip>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Latency Settings
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Set a range for random latency injection (in milliseconds)
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Tooltip title="Minimum delay to inject (in milliseconds)">
+                  <Box>
+                    <Typography gutterBottom>
+                      Min Latency: {formData.minLatency}ms
+                    </Typography>
+                    <Slider
+                      value={formData.minLatency}
+                      onChange={(e, v) => handleSliderChange(e, v, 'minLatency')}
+                      step={100}
+                      marks
+                      min={0}
+                      max={5000}
+                      valueLabelDisplay="auto"
+                    />
+                  </Box>
+                </Tooltip>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Tooltip title="Maximum delay to inject (in milliseconds)">
+                  <Box>
+                    <Typography gutterBottom>
+                      Max Latency: {formData.maxLatency}ms
+                    </Typography>
+                    <Slider
+                      value={formData.maxLatency}
+                      onChange={(e, v) => handleSliderChange(e, v, 'maxLatency')}
+                      step={100}
+                      marks
+                      min={formData.minLatency}
+                      max={5000}
+                      valueLabelDisplay="auto"
+                    />
+                  </Box>
+                </Tooltip>
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Tooltip title="Maximum delay to inject (in milliseconds)">
-                <Box>
-                  <Typography gutterBottom>
-                    Max Latency: {formData.maxLatency}ms
-                  </Typography>
-                  <Slider
-                    value={formData.maxLatency}
-                    onChange={(e, v) => handleSliderChange(e, v, 'maxLatency')}
-                    step={100}
-                    marks
-                    min={0}
-                    max={5000}
-                    valueLabelDisplay="auto"
-                  />
-                </Box>
-              </Tooltip>
-            </Grid>
-          </Grid>
+          </Box>
 
           <Divider sx={{ my: 3 }} />
 
-          <Box>
+          <Box sx={{ mb: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Failure Rate
             </Typography>
@@ -190,7 +213,7 @@ function QuickSandbox() {
 
           <Divider sx={{ my: 3 }} />
 
-          <Box>
+          <Box sx={{ mb: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Sandbox Mode
             </Typography>
@@ -209,7 +232,6 @@ function QuickSandbox() {
                   />
                 }
                 label="Sandbox Mode"
-                sx={{ mt: 2 }}
               />
             </Tooltip>
           </Box>
@@ -235,40 +257,45 @@ function QuickSandbox() {
 
       {result && (
         <Paper elevation={3} sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Results
-          </Typography>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Status Code: {result.status}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Results
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Response Time: {result.time.toFixed(2)}ms
-            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Status Code: {result.status}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Response Time: {result.time.toFixed(2)}ms
+              </Typography>
+            </Box>
           </Box>
-          <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
-            Response Data:
-          </Typography>
-          <Box
-            component="pre"
-            sx={{
-              p: 2,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              overflow: 'auto',
-              maxHeight: '400px',
-              '& code': {
-                color: 'text.primary',
-                fontFamily: 'monospace',
-                fontSize: '0.875rem',
-              }
-            }}
-          >
-            <code>
-              {JSON.stringify(result.data, null, 2)}
-            </code>
+
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }} gutterBottom>
+              Response Data:
+            </Typography>
+            <Box
+              component="pre"
+              sx={{
+                p: 2,
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'auto',
+                maxHeight: '400px',
+                '& code': {
+                  color: 'text.primary',
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                }
+              }}
+            >
+              <code>
+                {JSON.stringify(result.data, null, 2)}
+              </code>
+            </Box>
           </Box>
         </Paper>
       )}
