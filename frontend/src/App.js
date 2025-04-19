@@ -1,0 +1,67 @@
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+
+// Components
+import Navbar from './components/Navbar';
+import Login from './components/Login';
+import Register from './components/Register';
+import Profile from './components/Profile';
+import Dashboard from './components/Dashboard';
+import PrivateRoute from './components/PrivateRoute';
+import { UserProvider } from './contexts/UserContext';
+
+// Create a theme
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#90caf9',
+    },
+    secondary: {
+      main: '#f48fb1',
+    },
+  },
+});
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      // TODO: Verify token with backend
+      setUser({ token });
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return <Box>Loading...</Box>;
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <UserProvider>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Navbar user={user} setUser={setUser} />
+          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+            <Routes>
+              <Route path="/" element={user ? <Dashboard /> : <Navigate to="/login" />} />
+              <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
+              <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/" />} />
+              <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
+            </Routes>
+          </Box>
+        </Box>
+      </UserProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App; 

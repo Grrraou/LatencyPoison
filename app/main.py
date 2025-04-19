@@ -1,5 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from datetime import datetime, timedelta
+import jwt
+from passlib.context import CryptContext
+import os
 import httpx
 import random
 import asyncio
@@ -11,11 +17,96 @@ app = FastAPI(title="LatencyPoison", description="Network Chaos Proxy")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security
+SECRET_KEY = "your-secret-key-here"  # In production, use environment variable
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# Demo account
+DEMO_USER = {
+    "username": "demo",
+    "email": "demo@example.com",
+    "hashed_password": pwd_context.hash("demo123"),
+}
+
+# In-memory user storage (replace with database in production)
+users = {
+    DEMO_USER["email"]: DEMO_USER
+}
+
+# Models
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class User(BaseModel):
+    username: str
+    email: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+@app.post("/api/auth/register")
+async def register(user: UserCreate):
+    if user.email in users:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_password = pwd_context.hash(user.password)
+    users[user.email] = {
+        "username": user.username,
+        "email": user.email,
+        "hashed_password": hashed_password,
+    }
+    
+    access_token = create_access_token({"sub": user.email})
+    return {"token": access_token, "user": {"username": user.username, "email": user.email}}
+
+@app.post("/api/auth/login")
+async def login(email: str = Form(...), password: str = Form(...)):
+    user = users.get(email)
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    if not pwd_context.verify(password, user["hashed_password"]):
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    access_token = create_access_token({"sub": user["email"]})
+    return {"token": access_token, "user": {"username": user["username"], "email": user["email"]}}
+
+# Protected route example
+@app.get("/api/me")
+async def read_users_me(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    
+    user = users.get(email)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"username": user["username"], "email": user["email"]}
 
 def validate_url(url: str) -> bool:
     """Validate that the URL is properly formatted and uses http/https."""

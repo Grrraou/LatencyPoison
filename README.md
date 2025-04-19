@@ -1,95 +1,71 @@
-# LatencyPoison - Network Chaos Proxy
+# Latency Poison
 
-A FastAPI-based reverse proxy that injects network chaos conditions into HTTP requests.
+A tool for measuring and analyzing network latency.
 
-## Features
+## Development Setup
 
-- Artificial latency injection
-- Random server error injection
-- Simple and intuitive API
-- Docker support
-- AWS ECS deployment ready
+### Prerequisites
+- Docker
+- Docker Compose
+- Make
 
-## Quick Start
+### Quick Start
 
-### Local Development
-
-1. Create a virtual environment:
+1. Clone the repository
+2. Run the development environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+make dev
 ```
 
-2. Install dependencies:
+This will start:
+- Frontend at http://localhost:3000
+- API at http://localhost:8000
+
+### Demo Account
+For testing purposes, you can use the following demo account:
+```
+Email: demo@example.com
+Password: demo123
+```
+
+### Available Commands
+
+- `make dev` - Start development environment
+- `make build` - Build production images
+- `make clean` - Clean up containers and volumes
+- `make test` - Run tests
+- `make help` - Show available commands
+
+## Accessing the Application
+
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## Development
+
+The application is containerized using Docker Compose. The development environment includes:
+
+- Frontend: React application with hot reloading
+- Backend: FastAPI application with auto-reload
+- Database: SQLite (development)
+
+### Authentication
+The application includes a simple authentication system with:
+- User registration
+- User login
+- Protected routes
+- Demo account for testing
+
+## Production
+
+For production deployment, use the production Docker Compose file and build the images:
+
 ```bash
-pip install -r requirements.txt
+make build
+docker-compose up -d
 ```
 
-3. Run the server:
-```bash
-uvicorn app.main:app --reload
-```
+## License
 
-The application will be available at: http://localhost:8000
-
-### Docker
-
-1. Build the image:
-```bash
-docker build -t latencypoison .
-```
-
-2. Run the container:
-```bash
-docker run -p 80:80 latencypoison
-```
-
-The application will be available at: http://localhost
-
-### Accessing the API
-
-Once the application is running (either locally or in Docker), you can access:
-
-- Main API: http://localhost:8000 (local) or http://localhost (Docker)
-- API Documentation: http://localhost:8000/docs (local) or http://localhost/docs (Docker)
-- Proxy Endpoint: http://localhost:8000/proxy (local) or http://localhost/proxy (Docker)
-
-## API Usage
-
-### Proxy Endpoint
-
-```
-GET /proxy?url=<target_url>&delay=<ms>&fail_rate=<probability>
-```
-
-Parameters:
-- `url` (required): The target URL to forward to
-- `delay` (optional): Artificial latency in milliseconds (default: 0)
-- `fail_rate` (optional): Probability of returning a 500 error (0.0 to 1.0, default: 0.0)
-
-Example:
-```
-GET /proxy?url=https://api.github.com&delay=1000&fail_rate=0.1
-```
-
-You can test this in your browser or using curl:
-```bash
-curl "http://localhost/proxy?url=https://api.github.com&delay=1000&fail_rate=0.1"
-```
-
-## Deployment
-
-The application is ready for deployment on AWS ECS. The Dockerfile is configured to run on port 80.
-
-## Security
-
-- Basic URL validation (must start with http/https)
-- CORS enabled for all origins (configurable)
-
-## Future Extensions
-
-- Named chaos profiles
-- Admin UI
-- Additional HTTP method support
-- Authentication
-- Analytics and logging 
+MIT
