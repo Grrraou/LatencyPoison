@@ -42,6 +42,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
         if email is None:
             raise credentials_exception
         token_data = TokenData(email=email)
-    except jwt.JWTError:
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.PyJWTError:
         raise credentials_exception
     return token_data 

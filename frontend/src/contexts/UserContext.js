@@ -10,7 +10,8 @@ export const UserProvider = ({ children }) => {
     // Check for existing token in localStorage
     const token = localStorage.getItem('token');
     if (token) {
-      // TODO: Verify token with backend
+      // For now, we'll just set a basic user object
+      // In a real app, you'd want to verify this token with the backend
       setUser({ token });
     }
     setLoading(false);
@@ -31,7 +32,7 @@ export const UserProvider = ({ children }) => {
   }
 
   return (
-    <UserContext.Provider value={{ user, login, logout }}>
+    <UserContext.Provider value={{ user, login, logout, setUser }}>
       {children}
     </UserContext.Provider>
   );

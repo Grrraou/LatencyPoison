@@ -8,7 +8,7 @@ import Box from '@mui/material/Box';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Register from './components/Register';
-import Profile from './components/Profile';
+import Endpoints from './components/Endpoints';
 import Dashboard from './components/Dashboard';
 import QuickSandbox from './components/QuickSandbox';
 import { UserProvider } from './contexts/UserContext';
@@ -55,7 +55,7 @@ function App() {
               <Route path="/" element={user ? <Dashboard /> : <Navigate to="/login" />} />
               <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
               <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/" />} />
-              <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
+              <Route path="/endpoints" element={user ? <Endpoints /> : <Navigate to="/login" />} />
               <Route path="/sandbox" element={user ? <QuickSandbox /> : <Navigate to="/login" />} />
             </Routes>
           </Box>

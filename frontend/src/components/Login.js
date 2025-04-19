@@ -45,15 +45,28 @@ function Login({ setUser }) {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
-        setUser(data.user);
+        localStorage.setItem('token', data.access_token);
+        const user = {
+          email: formData.email,
+          token: data.access_token
+        };
+        setUser(user);
         navigate('/');
       } else {
-        setError(data.detail || 'Login failed');
+        // Handle different types of error responses
+        if (typeof data.detail === 'string') {
+          setError(data.detail);
+        } else if (Array.isArray(data.detail)) {
+          setError(data.detail[0]?.msg || 'Login failed');
+        } else if (data.detail && typeof data.detail === 'object') {
+          setError(Object.values(data.detail)[0] || 'Login failed');
+        } else {
+          setError('Login failed');
+        }
       }
     } catch (err) {
-      setError('An error occurred during login');
       console.error('Login error:', err);
+      setError('An error occurred during login');
     }
   };
 
