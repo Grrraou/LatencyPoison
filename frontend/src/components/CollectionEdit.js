@@ -18,6 +18,7 @@ import {
   Snackbar,
   Alert,
   Slider,
+  Grid,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -32,9 +33,9 @@ function CollectionEdit() {
   const [editDialog, setEditDialog] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState(null);
   const [newEndpoint, setNewEndpoint] = useState({
-    url: '',
-    latency_ms: 0,
-    fail_rate: 0,
+    path: '',
+    latency_ms: null,
+    fail_rate: null,
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -58,8 +59,8 @@ function CollectionEdit() {
 
   const handleCreateEndpoint = async () => {
     try {
-      if (!newEndpoint.url.trim()) {
-        setError('URL cannot be empty');
+      if (!newEndpoint.path.trim()) {
+        setError('Path cannot be empty');
         return;
       }
 
@@ -67,9 +68,9 @@ function CollectionEdit() {
       setEndpoints([...endpoints, createdEndpoint]);
       setOpenDialog(false);
       setNewEndpoint({
-        url: '',
-        latency_ms: 0,
-        fail_rate: 0,
+        path: '',
+        latency_ms: null,
+        fail_rate: null,
       });
       setSuccess('Endpoint created successfully');
     } catch (error) {
@@ -79,13 +80,13 @@ function CollectionEdit() {
 
   const handleEditEndpoint = async () => {
     try {
-      if (!editingEndpoint.url.trim()) {
-        setError('URL cannot be empty');
+      if (!editingEndpoint.path.trim()) {
+        setError('Path cannot be empty');
         return;
       }
 
       const updatedEndpoint = await updateEndpoint(editingEndpoint.id, {
-        url: editingEndpoint.url,
+        path: editingEndpoint.path,
         latency_ms: editingEndpoint.latency_ms,
         fail_rate: editingEndpoint.fail_rate,
       });
@@ -120,15 +121,23 @@ function CollectionEdit() {
       <Box sx={{ mt: 4 }}>
         <Paper elevation={3} sx={{ p: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" component="h1">
-              {collection.name}
-            </Typography>
+            <Box>
+              <Typography variant="h4" component="h1">
+                {collection.name}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {collection.base_url}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Default Latency: {collection.default_latency_ms}ms | Fail Rate: {collection.default_fail_rate}%
+              </Typography>
+            </Box>
             <Button
               variant="contained"
               color="primary"
               onClick={() => setOpenDialog(true)}
             >
-              Add Endpoint
+              Add Path
             </Button>
           </Box>
 
@@ -159,15 +168,15 @@ function CollectionEdit() {
                 }
               >
                 <ListItemText
-                  primary={endpoint.url}
+                  primary={endpoint.path}
                   secondary={
                     <>
                       <Typography component="span" variant="body2" color="text.primary">
-                        Latency: {endpoint.latency_ms}ms
+                        Latency: {endpoint.latency_ms !== null ? `${endpoint.latency_ms}ms` : 'Default'}
                       </Typography>
                       {' — '}
                       <Typography component="span" variant="body2" color="text.primary">
-                        Fail Rate: {endpoint.fail_rate}%
+                        Fail Rate: {endpoint.fail_rate !== null ? `${endpoint.fail_rate}%` : 'Default'}
                       </Typography>
                     </>
                   }
@@ -179,38 +188,43 @@ function CollectionEdit() {
       </Box>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Add New Endpoint</DialogTitle>
+        <DialogTitle>Add New Path</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="URL"
-            fullWidth
-            value={newEndpoint.url}
-            onChange={(e) => setNewEndpoint({ ...newEndpoint, url: e.target.value })}
-          />
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Latency (ms)</Typography>
-            <Slider
-              value={newEndpoint.latency_ms}
-              onChange={(e, value) => setNewEndpoint({ ...newEndpoint, latency_ms: value })}
-              min={0}
-              max={10000}
-              step={100}
-              valueLabelDisplay="auto"
-            />
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Fail Rate (%)</Typography>
-            <Slider
-              value={newEndpoint.fail_rate}
-              onChange={(e, value) => setNewEndpoint({ ...newEndpoint, fail_rate: value })}
-              min={0}
-              max={100}
-              step={1}
-              valueLabelDisplay="auto"
-            />
-          </Box>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Path"
+                fullWidth
+                value={newEndpoint.path}
+                onChange={(e) => setNewEndpoint({ ...newEndpoint, path: e.target.value })}
+                placeholder="/api/users"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography gutterBottom>Latency (ms)</Typography>
+              <Slider
+                value={newEndpoint.latency_ms || collection.default_latency_ms}
+                onChange={(e, value) => setNewEndpoint({ ...newEndpoint, latency_ms: value })}
+                min={0}
+                max={10000}
+                step={100}
+                valueLabelDisplay="auto"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography gutterBottom>Fail Rate (%)</Typography>
+              <Slider
+                value={newEndpoint.fail_rate || collection.default_fail_rate}
+                onChange={(e, value) => setNewEndpoint({ ...newEndpoint, fail_rate: value })}
+                min={0}
+                max={100}
+                step={1}
+                valueLabelDisplay="auto"
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
@@ -221,38 +235,43 @@ function CollectionEdit() {
       </Dialog>
 
       <Dialog open={editDialog} onClose={() => setEditDialog(false)}>
-        <DialogTitle>Edit Endpoint</DialogTitle>
+        <DialogTitle>Edit Path</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="URL"
-            fullWidth
-            value={editingEndpoint?.url || ''}
-            onChange={(e) => setEditingEndpoint({ ...editingEndpoint, url: e.target.value })}
-          />
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Latency (ms)</Typography>
-            <Slider
-              value={editingEndpoint?.latency_ms || 0}
-              onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, latency_ms: value })}
-              min={0}
-              max={10000}
-              step={100}
-              valueLabelDisplay="auto"
-            />
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Fail Rate (%)</Typography>
-            <Slider
-              value={editingEndpoint?.fail_rate || 0}
-              onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, fail_rate: value })}
-              min={0}
-              max={100}
-              step={1}
-              valueLabelDisplay="auto"
-            />
-          </Box>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Path"
+                fullWidth
+                value={editingEndpoint?.path || ''}
+                onChange={(e) => setEditingEndpoint({ ...editingEndpoint, path: e.target.value })}
+                placeholder="/api/users"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography gutterBottom>Latency (ms)</Typography>
+              <Slider
+                value={editingEndpoint?.latency_ms ?? collection.default_latency_ms}
+                onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, latency_ms: value })}
+                min={0}
+                max={10000}
+                step={100}
+                valueLabelDisplay="auto"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography gutterBottom>Fail Rate (%)</Typography>
+              <Slider
+                value={editingEndpoint?.fail_rate ?? collection.default_fail_rate}
+                onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, fail_rate: value })}
+                min={0}
+                max={100}
+                step={1}
+                valueLabelDisplay="auto"
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialog(false)}>Cancel</Button>

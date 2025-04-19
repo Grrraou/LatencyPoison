@@ -25,7 +25,11 @@ async def create_collection(
         new_collection = Collection(
             id=collection_id,
             name=collection.name,
-            user_email=current_user.email
+            base_url=collection.base_url,
+            default_latency_ms=collection.default_latency_ms,
+            default_fail_rate=collection.default_fail_rate,
+            user_email=current_user.email,
+            endpoints=[]
         )
         collections[collection_id] = new_collection
         return new_collection

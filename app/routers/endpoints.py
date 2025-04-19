@@ -25,7 +25,7 @@ async def create_endpoint(
         endpoint_id = str(uuid.uuid4())
         new_endpoint = Endpoint(
             id=endpoint_id,
-            url=endpoint.url,
+            path=endpoint.path,
             latency_ms=endpoint.latency_ms,
             fail_rate=endpoint.fail_rate,
             collection_id=collection_id
@@ -81,8 +81,8 @@ async def update_endpoint(
         if not endpoint:
             raise HTTPException(status_code=404, detail="Endpoint not found")
         
-        if endpoint_update.url is not None:
-            endpoint.url = endpoint_update.url
+        if endpoint_update.path is not None:
+            endpoint.path = endpoint_update.path
         if endpoint_update.latency_ms is not None:
             endpoint.latency_ms = endpoint_update.latency_ms
         if endpoint_update.fail_rate is not None:

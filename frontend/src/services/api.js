@@ -78,14 +78,14 @@ export const fetchCollection = async (collectionId) => {
   return handleResponse(response);
 };
 
-export const createCollection = async (name) => {
+export const createCollection = async (collectionData) => {
   const response = await fetch(API_ENDPOINTS.COLLECTIONS, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(collectionData),
   });
 
   return handleResponse(response);
