@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { fetchCollection, fetchEndpoints, createEndpoint, deleteEndpoint } from '../services/api';
+import { fetchCollection, fetchEndpoints, createEndpoint, updateEndpoint, deleteEndpoint } from '../services/api';
 
 function CollectionEdit() {
   const { collectionId } = useParams();
@@ -29,6 +29,8 @@ function CollectionEdit() {
   const [collection, setCollection] = useState(null);
   const [endpoints, setEndpoints] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [editingEndpoint, setEditingEndpoint] = useState(null);
   const [newEndpoint, setNewEndpoint] = useState({
     url: '',
     latency_ms: 0,
@@ -75,6 +77,30 @@ function CollectionEdit() {
     }
   };
 
+  const handleEditEndpoint = async () => {
+    try {
+      if (!editingEndpoint.url.trim()) {
+        setError('URL cannot be empty');
+        return;
+      }
+
+      const updatedEndpoint = await updateEndpoint(editingEndpoint.id, {
+        url: editingEndpoint.url,
+        latency_ms: editingEndpoint.latency_ms,
+        fail_rate: editingEndpoint.fail_rate,
+      });
+
+      setEndpoints(endpoints.map(e => 
+        e.id === updatedEndpoint.id ? updatedEndpoint : e
+      ));
+      setEditDialog(false);
+      setEditingEndpoint(null);
+      setSuccess('Endpoint updated successfully');
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   const handleDeleteEndpoint = async (endpointId) => {
     try {
       await deleteEndpoint(endpointId);
@@ -111,13 +137,25 @@ function CollectionEdit() {
               <ListItem
                 key={endpoint.id}
                 secondaryAction={
-                  <IconButton
-                    edge="end"
-                    aria-label="delete"
-                    onClick={() => handleDeleteEndpoint(endpoint.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <Box>
+                    <IconButton
+                      edge="end"
+                      aria-label="edit"
+                      onClick={() => {
+                        setEditingEndpoint({ ...endpoint });
+                        setEditDialog(true);
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      onClick={() => handleDeleteEndpoint(endpoint.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
                 }
               >
                 <ListItemText
@@ -178,6 +216,48 @@ function CollectionEdit() {
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
           <Button onClick={handleCreateEndpoint} variant="contained">
             Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editDialog} onClose={() => setEditDialog(false)}>
+        <DialogTitle>Edit Endpoint</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="URL"
+            fullWidth
+            value={editingEndpoint?.url || ''}
+            onChange={(e) => setEditingEndpoint({ ...editingEndpoint, url: e.target.value })}
+          />
+          <Box sx={{ mt: 2 }}>
+            <Typography gutterBottom>Latency (ms)</Typography>
+            <Slider
+              value={editingEndpoint?.latency_ms || 0}
+              onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, latency_ms: value })}
+              min={0}
+              max={10000}
+              step={100}
+              valueLabelDisplay="auto"
+            />
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <Typography gutterBottom>Fail Rate (%)</Typography>
+            <Slider
+              value={editingEndpoint?.fail_rate || 0}
+              onChange={(e, value) => setEditingEndpoint({ ...editingEndpoint, fail_rate: value })}
+              min={0}
+              max={100}
+              step={1}
+              valueLabelDisplay="auto"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialog(false)}>Cancel</Button>
+          <Button onClick={handleEditEndpoint} variant="contained">
+            Save
           </Button>
         </DialogActions>
       </Dialog>
