@@ -9,6 +9,9 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import os
 import json
+import requests
+import random
+import time
 
 from database import get_db, User as DBUser
 
@@ -190,4 +193,33 @@ async def read_users_me(current_user: DBUser = Depends(get_current_user)):
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Latency Poison API"} 
+    return {"message": "Welcome to Latency Poison API"}
+
+@app.get("/proxy")
+async def proxy_request(
+    url: str,
+    fail_rate: float = 0,
+    min_latency: int = 0,
+    max_latency: int = 1000,
+    sandbox: bool = False
+):
+    try:
+        # Simulate latency if specified
+        if min_latency > 0 or max_latency > 0:
+            latency = random.uniform(min_latency, max_latency) / 1000  # Convert to seconds
+            time.sleep(latency)
+
+        # Simulate failure if specified
+        if random.random() < fail_rate:
+            raise HTTPException(status_code=500, detail="Simulated failure")
+
+        # Make the actual request with timeout
+        response = requests.get(url, timeout=10)  # 10 second timeout
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()
+    except requests.Timeout:
+        raise HTTPException(status_code=504, detail="Request timed out")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 

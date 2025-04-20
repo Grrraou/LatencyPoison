@@ -22,12 +22,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./test.db
+      - DATABASE_URL=sqlite:////data/users.db
       - SECRET_KEY=your-secret-key-here
     volumes:
       - ./api:/app
-      - api_data:/app/data
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - api_data:/data
+    command: sh -c "python init_db.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   frontend_node_modules:

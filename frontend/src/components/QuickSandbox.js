@@ -72,18 +72,27 @@ function QuickSandbox() {
     try {
       const startTime = performance.now();
       const failRateDecimal = formData.failRate / 100;
+      
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(
         `${API_ENDPOINTS.PROXY}?url=${encodeURIComponent(formData.url)}&fail_rate=${failRateDecimal}&min_latency=${formData.minLatency}&max_latency=${formData.maxLatency}&sandbox=${formData.sandbox}`,
         {
           headers: {
             'Accept': 'application/json',
-          }
+          },
+          signal: controller.signal
         }
       );
+      
+      clearTimeout(timeoutId);
       const endTime = performance.now();
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
@@ -94,7 +103,11 @@ function QuickSandbox() {
         data: data,
       });
     } catch (err) {
-      setError(err.message);
+      if (err.name === 'AbortError') {
+        setError('Request timed out after 30 seconds');
+      } else {
+        setError(err.message);
+      }
       console.error('Error:', err);
     } finally {
       setLoading(false);
