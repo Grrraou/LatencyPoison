@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -13,7 +13,7 @@ import requests
 import random
 import time
 
-from database import get_db, User as DBUser
+from database import get_db, User as DBUser, Collection as DBCollection, Endpoint as DBEndpoint
 
 # Security
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -53,6 +53,42 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: Optional[str] = None
+
+# New Pydantic models
+class CollectionBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CollectionCreate(CollectionBase):
+    pass
+
+class Collection(CollectionBase):
+    id: int
+    owner_id: int
+
+    class Config:
+        orm_mode = True
+
+class EndpointBase(BaseModel):
+    name: str
+    url: str
+    method: str
+    headers: Optional[Dict[str, Any]] = None
+    body: Optional[Dict[str, Any]] = None
+    fail_rate: int = 0
+    min_latency: int = 0
+    max_latency: int = 1000
+    sandbox: bool = False
+
+class EndpointCreate(EndpointBase):
+    collection_id: int
+
+class Endpoint(EndpointBase):
+    id: int
+    collection_id: int
+
+    class Config:
+        orm_mode = True
 
 # Helper functions
 def verify_password(plain_password, hashed_password):
@@ -197,24 +233,40 @@ async def root():
 
 @app.get("/proxy")
 async def proxy_request(
-    url: str,
-    fail_rate: float = 0,
-    min_latency: int = 0,
-    max_latency: int = 1000,
-    sandbox: bool = False
+    endpoint_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
 ):
     try:
+        # Get endpoint from database
+        endpoint = db.query(DBEndpoint).join(DBCollection).filter(
+            DBEndpoint.id == endpoint_id,
+            DBCollection.owner_id == current_user.id
+        ).first()
+        
+        if endpoint is None:
+            raise HTTPException(status_code=404, detail="Endpoint not found")
+
         # Simulate latency if specified
-        if min_latency > 0 or max_latency > 0:
-            latency = random.uniform(min_latency, max_latency) / 1000  # Convert to seconds
+        if endpoint.min_latency > 0 or endpoint.max_latency > 0:
+            latency = random.uniform(endpoint.min_latency, endpoint.max_latency) / 1000  # Convert to seconds
             time.sleep(latency)
 
         # Simulate failure if specified
-        if random.random() < fail_rate:
+        if random.random() < (endpoint.fail_rate / 100):  # Convert percentage to decimal
             raise HTTPException(status_code=500, detail="Simulated failure")
 
         # Make the actual request with timeout
-        response = requests.get(url, timeout=10)  # 10 second timeout
+        headers = endpoint.headers or {}
+        data = endpoint.body if endpoint.method.upper() in ['POST', 'PUT', 'PATCH'] else None
+        
+        response = requests.request(
+            method=endpoint.method,
+            url=endpoint.url,
+            headers=headers,
+            json=data,
+            timeout=10  # 10 second timeout
+        )
         response.raise_for_status()  # Raise an exception for bad status codes
         return response.json()
     except requests.Timeout:
@@ -222,4 +274,121 @@ async def proxy_request(
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+# New routes for collections
+@app.post("/api/collections/", response_model=Collection)
+async def create_collection(
+    collection: CollectionCreate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    db_collection = DBCollection(**collection.dict(), owner_id=current_user.id)
+    db.add(db_collection)
+    db.commit()
+    db.refresh(db_collection)
+    return db_collection
+
+@app.get("/api/collections/", response_model=List[Collection])
+async def read_collections(
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    return db.query(DBCollection).filter(DBCollection.owner_id == current_user.id).all()
+
+@app.get("/api/collections/{collection_id}/", response_model=Collection)
+async def read_collection(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    collection = db.query(DBCollection).filter(
+        DBCollection.id == collection_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return collection
+
+@app.delete("/api/collections/{collection_id}/")
+async def delete_collection(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    collection = db.query(DBCollection).filter(
+        DBCollection.id == collection_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    db.delete(collection)
+    db.commit()
+    return {"message": "Collection deleted"}
+
+# New routes for endpoints
+@app.post("/api/endpoints/", response_model=Endpoint)
+async def create_endpoint(
+    endpoint: EndpointCreate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    # Verify collection belongs to user
+    collection = db.query(DBCollection).filter(
+        DBCollection.id == endpoint.collection_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    
+    db_endpoint = DBEndpoint(**endpoint.dict())
+    db.add(db_endpoint)
+    db.commit()
+    db.refresh(db_endpoint)
+    return db_endpoint
+
+@app.get("/api/collections/{collection_id}/endpoints/", response_model=List[Endpoint])
+async def read_endpoints(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    # Verify collection belongs to user
+    collection = db.query(DBCollection).filter(
+        DBCollection.id == collection_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    
+    return db.query(DBEndpoint).filter(DBEndpoint.collection_id == collection_id).all()
+
+@app.get("/api/endpoints/{endpoint_id}/", response_model=Endpoint)
+async def read_endpoint(
+    endpoint_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    endpoint = db.query(DBEndpoint).join(DBCollection).filter(
+        DBEndpoint.id == endpoint_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if endpoint is None:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    return endpoint
+
+@app.delete("/api/endpoints/{endpoint_id}/")
+async def delete_endpoint(
+    endpoint_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    endpoint = db.query(DBEndpoint).join(DBCollection).filter(
+        DBEndpoint.id == endpoint_id,
+        DBCollection.owner_id == current_user.id
+    ).first()
+    if endpoint is None:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    db.delete(endpoint)
+    db.commit()
+    return {"message": "Endpoint deleted"} 

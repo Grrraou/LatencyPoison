@@ -71,7 +71,7 @@ export const fetchCollections = async () => {
 };
 
 export const fetchCollection = async (collectionId) => {
-  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}${collectionId}/`, {
+  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}/${collectionId}/`, {
     headers: getAuthHeader(),
   });
 
@@ -79,7 +79,7 @@ export const fetchCollection = async (collectionId) => {
 };
 
 export const createCollection = async (collectionData) => {
-  const response = await fetch(API_ENDPOINTS.COLLECTIONS, {
+  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}/`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -92,7 +92,7 @@ export const createCollection = async (collectionData) => {
 };
 
 export const deleteCollection = async (collectionId) => {
-  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}${collectionId}/`, {
+  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}/${collectionId}/`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -102,14 +102,14 @@ export const deleteCollection = async (collectionId) => {
 
 // Endpoint functions
 export const fetchEndpoints = async (collectionId) => {
-  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}collection/${collectionId}/`, {
+  const response = await fetch(`${API_ENDPOINTS.COLLECTIONS}/${collectionId}/endpoints/`, {
     headers: getAuthHeader(),
   });
   return handleResponse(response);
 };
 
 export const createEndpoint = async (collectionId, endpointData) => {
-  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}?collection_id=${collectionId}`, {
+  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}/?collection_id=${collectionId}`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -122,7 +122,7 @@ export const createEndpoint = async (collectionId, endpointData) => {
 };
 
 export const updateEndpoint = async (endpointId, endpointData) => {
-  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}${endpointId}/`, {
+  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}/${endpointId}/`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -135,7 +135,7 @@ export const updateEndpoint = async (endpointId, endpointData) => {
 };
 
 export const deleteEndpoint = async (endpointId) => {
-  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}${endpointId}/`, {
+  const response = await fetch(`${API_ENDPOINTS.ENDPOINTS}/${endpointId}/`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });

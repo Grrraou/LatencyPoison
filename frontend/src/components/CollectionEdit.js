@@ -33,7 +33,9 @@ function CollectionEdit() {
   const [editDialog, setEditDialog] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState(null);
   const [newEndpoint, setNewEndpoint] = useState({
-    path: '',
+    name: '',
+    url: '',
+    method: 'GET',
     latency_ms: null,
     fail_rate: null,
   });
@@ -59,16 +61,28 @@ function CollectionEdit() {
 
   const handleCreateEndpoint = async () => {
     try {
-      if (!newEndpoint.path.trim()) {
-        setError('Path cannot be empty');
+      if (!newEndpoint.name.trim() || !newEndpoint.url.trim()) {
+        setError('Name and URL are required');
         return;
       }
 
-      const createdEndpoint = await createEndpoint(collectionId, newEndpoint);
+      const endpointData = {
+        name: newEndpoint.name,
+        url: newEndpoint.url,
+        method: newEndpoint.method,
+        min_latency: newEndpoint.latency_ms || 0,
+        max_latency: newEndpoint.latency_ms || 1000,
+        fail_rate: newEndpoint.fail_rate || 0,
+        collection_id: parseInt(collectionId)
+      };
+
+      const createdEndpoint = await createEndpoint(collectionId, endpointData);
       setEndpoints([...endpoints, createdEndpoint]);
       setOpenDialog(false);
       setNewEndpoint({
-        path: '',
+        name: '',
+        url: '',
+        method: 'GET',
         latency_ms: null,
         fail_rate: null,
       });
@@ -188,24 +202,53 @@ function CollectionEdit() {
       </Box>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Add New Path</DialogTitle>
+        <DialogTitle>Add New Endpoint</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <TextField
                 autoFocus
                 margin="dense"
-                label="Path"
+                label="Name"
                 fullWidth
-                value={newEndpoint.path}
-                onChange={(e) => setNewEndpoint({ ...newEndpoint, path: e.target.value })}
-                placeholder="/api/users"
+                value={newEndpoint.name}
+                onChange={(e) => setNewEndpoint({ ...newEndpoint, name: e.target.value })}
+                placeholder="User API"
               />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                label="URL"
+                fullWidth
+                value={newEndpoint.url}
+                onChange={(e) => setNewEndpoint({ ...newEndpoint, url: e.target.value })}
+                placeholder="https://api.example.com/users"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                label="Method"
+                fullWidth
+                select
+                value={newEndpoint.method}
+                onChange={(e) => setNewEndpoint({ ...newEndpoint, method: e.target.value })}
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+              </TextField>
             </Grid>
             <Grid item xs={6}>
               <Typography gutterBottom>Latency (ms)</Typography>
               <Slider
-                value={newEndpoint.latency_ms || collection.default_latency_ms}
+                value={newEndpoint.latency_ms || 0}
                 onChange={(e, value) => setNewEndpoint({ ...newEndpoint, latency_ms: value })}
                 min={0}
                 max={10000}
@@ -216,7 +259,7 @@ function CollectionEdit() {
             <Grid item xs={6}>
               <Typography gutterBottom>Fail Rate (%)</Typography>
               <Slider
-                value={newEndpoint.fail_rate || collection.default_fail_rate}
+                value={newEndpoint.fail_rate || 0}
                 onChange={(e, value) => setNewEndpoint({ ...newEndpoint, fail_rate: value })}
                 min={0}
                 max={100}
