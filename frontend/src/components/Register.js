@@ -10,7 +10,7 @@ import {
   Link,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { API_ENDPOINTS } from '../config';
+import { register } from '../services/api';
 
 function Register({ setUser }) {
   const [formData, setFormData] = useState({
@@ -38,30 +38,31 @@ function Register({ setUser }) {
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.REGISTER, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        setUser(data.user);
-        navigate('/');
-      } else {
-        setError(data.detail || 'Registration failed');
-      }
+      const data = await register(formData.username, formData.email, formData.password);
+      const user = {
+        username: formData.username,
+        email: formData.email,
+        token: data.access_token
+      };
+      localStorage.setItem('token', data.access_token);
+      setUser(user);
+      navigate('/');
     } catch (err) {
-      setError('An error occurred during registration');
       console.error('Registration error:', err);
+      if (err.response?.data?.detail) {
+        const errorDetail = err.response.data.detail;
+        if (typeof errorDetail === 'string') {
+          setError(errorDetail);
+        } else if (Array.isArray(errorDetail)) {
+          setError(errorDetail[0]?.msg || 'Registration failed');
+        } else if (typeof errorDetail === 'object') {
+          setError(Object.values(errorDetail)[0] || 'Registration failed');
+        } else {
+          setError('Registration failed');
+        }
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     }
   };
 

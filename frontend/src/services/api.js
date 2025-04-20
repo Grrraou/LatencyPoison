@@ -16,17 +16,16 @@ const handleResponse = async (response) => {
 };
 
 // Authentication functions
-export const login = async (email, password) => {
-  const formData = new URLSearchParams();
-  formData.append('email', email);
-  formData.append('password', password);
-
+export const login = async (username, password) => {
   const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify({
+      username: username,
+      password: password,
+    }),
   });
 
   const data = await handleResponse(response);
@@ -34,13 +33,14 @@ export const login = async (email, password) => {
   return data;
 };
 
-export const register = async (email, password) => {
+export const register = async (username, email, password) => {
   const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      username: username,
       email: email,
       password: password,
     }),

@@ -11,6 +11,9 @@ RUN npm install
 # Copy application code
 COPY . .
 
+# Create a volume for node_modules
+VOLUME /app/node_modules
+
 # Expose port
 EXPOSE 3000
 

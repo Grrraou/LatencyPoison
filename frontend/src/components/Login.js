@@ -14,7 +14,7 @@ import { login } from '../services/api';
 
 function Login({ setUser }) {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
   });
   const [error, setError] = useState('');
@@ -30,9 +30,9 @@ function Login({ setUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await login(formData.username, formData.password);
       const user = {
-        email: formData.email,
+        username: formData.username,
         token: data.access_token
       };
       localStorage.setItem('token', data.access_token);
@@ -73,10 +73,9 @@ function Login({ setUser }) {
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
+              label="Username"
+              name="username"
+              value={formData.username}
               onChange={handleChange}
               margin="normal"
               required

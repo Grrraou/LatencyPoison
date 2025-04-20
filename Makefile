@@ -2,7 +2,7 @@
 
 # Development
 dev:
-	docker-compose -f docker-compose.dev.yml up --build
+	docker-compose up
 
 # Build production images
 build:
@@ -11,7 +11,7 @@ build:
 # Clean up containers and volumes
 clean:
 	docker-compose down -v
-	docker system prune -f
+	docker-compose rm -f
 
 # Run tests
 test:

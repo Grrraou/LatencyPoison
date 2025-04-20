@@ -1,6 +1,37 @@
 # Latency Poison
 
-A tool for testing API resilience by simulating latency and failures.
+A web application for testing and monitoring API latency.
+
+## Prerequisites
+
+- Docker
+- Docker Compose
+- Make
+
+## Setup
+
+1. Clone the repository
+2. Run the following commands:
+
+```bash
+make build  # Build the Docker images
+make dev    # Start the development environment
+```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+
+## Development
+
+- `make dev` - Start the development environment
+- `make build` - Rebuild the Docker images
+- `make clean` - Clean up Docker resources
+
+## Project Structure
+
+- `frontend/` - React frontend application
+- `api/` - FastAPI backend application
 
 ## Features
 
